@@ -28,10 +28,6 @@ type Chunker struct {
 	// size.
 	minBytes, maxBytes uint64
 
-	// hashMask is the average chunk size minus one. Chunk
-	// boundaries occur where hash&hashMask == hashMask.
-	hashMask uint64
-
 	// ioErr is the sticky error returned from r.Read.
 	ioErr error
 }
@@ -66,7 +62,7 @@ type Discarder interface {
 // boundary n+1 does not depend on data from before chunk boundary n.
 //
 // avgBytes must be a power of two.
-func NewChunker(table *Table, r io.Reader, minBytes, avgBytes, maxBytes int) *Chunker {
+func NewChunker(table *Table, r io.Reader, minBytes, maxBytes int) *Chunker {
 	if table.window <= 0 {
 		panic("Chunker requires a windowed hash function")
 	}
@@ -75,9 +71,6 @@ func NewChunker(table *Table, r io.Reader, minBytes, avgBytes, maxBytes int) *Ch
 	}
 	if maxBytes < minBytes {
 		panic("maximum block size must be >= minimum block size")
-	}
-	if avgBytes&(avgBytes-1) != 0 {
-		panic("average block size must be a power of two")
 	}
 
 	logBufSize := uint(10)
@@ -92,7 +85,6 @@ func NewChunker(table *Table, r io.Reader, minBytes, avgBytes, maxBytes int) *Ch
 	return &Chunker{
 		tab: table, r: r, buf: buf,
 		minBytes: uint64(minBytes), maxBytes: uint64(maxBytes),
-		hashMask: uint64(avgBytes - 1),
 	}
 }
 
@@ -164,11 +156,11 @@ func (c *Chunker) Next() (int, error) {
 
 	// Process bytes and roll the window looking for a hash
 	// boundary.
-	buf, head, hashMask := c.buf, c.head, c.hashMask
+	buf, head := c.buf, c.head
 	shift := tab.shift % 64
 	refill := c.tail - window
 	limit := start + c.maxBytes - window
-	for hash&hashMask != hashMask && head < limit {
+	for hash&0x1FFF != 0 && head < limit {
 		// TODO: This could figure out how many bytes it can
 		// process without refilling or wrapping and process
 		// those without checks.

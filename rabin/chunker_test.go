@@ -7,7 +7,6 @@ package rabin
 import (
 	"bytes"
 	"io"
-	"math"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -16,7 +15,6 @@ import (
 func TestChunker(t *testing.T) {
 	const (
 		min = 128
-		avg = 1 << 10
 		max = 4 << 10
 	)
 
@@ -34,7 +32,7 @@ func TestChunker(t *testing.T) {
 		tab := NewTable(Poly64, 64)
 
 		// Chunk data using the Chunker.
-		c := NewChunker(tab, bytes.NewReader(data), min, avg, max)
+		c := NewChunker(tab, bytes.NewReader(data), min, max)
 		for {
 			length, err := c.Next()
 			if err == io.EOF {
@@ -52,7 +50,7 @@ func TestChunker(t *testing.T) {
 		for _, b := range data {
 			h.Write([]byte{b})
 			clen++
-			if (clen >= min && h.Sum64()&(avg-1) == (avg-1)) ||
+			if (clen >= min && h.Sum64()&(0x1FFF) == (0)) ||
 				clen == max {
 				l2, clen = append(l2, clen), 0
 			}
@@ -71,17 +69,11 @@ func TestChunker(t *testing.T) {
 		}
 	}
 
-	// Check that the average block length is about right.
-	avgLen := float64(totalLen) / float64(numLen)
-	if math.Abs(avgLen-avg) > 0.1*avg {
-		t.Errorf("want average block length approx %d, got %g", avg, avgLen)
-	}
 }
 
 func BenchmarkChunker(b *testing.B) {
 	const (
 		min = 128
-		avg = 1 << 10
 		max = 4 << 10
 	)
 
@@ -93,7 +85,7 @@ func BenchmarkChunker(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		c := NewChunker(tab, bytes.NewReader(data), min, avg, max)
+		c := NewChunker(tab, bytes.NewReader(data), min, max)
 		for {
 			_, err := c.Next()
 			if err == io.EOF {

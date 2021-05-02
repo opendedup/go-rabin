@@ -17,8 +17,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/aclements/go-rabin/cmd/internal/cdflags"
-	"github.com/aclements/go-rabin/rabin"
+	"github.com/opendedup/go-rabin/cmd/internal/cdflags"
+	"github.com/opendedup/go-rabin/rabin"
 )
 
 func main() {
@@ -33,7 +33,6 @@ func main() {
 		os.Exit(2)
 	}
 	window := cdflags.FlagBytes("window", 64, "use a rolling hash with window size `w`")
-	avg := cdflags.FlagBytes("avg", 4<<10, "average chunk `size`; must be a power of 2")
 	min := cdflags.FlagBytes("min", 512, "minimum chunk `size`")
 	max := cdflags.FlagBytes("max", 32<<10, "maximum chunk `size`")
 	outBase := flag.String("out", "", "write output to `base`.NNNNNN")
@@ -43,9 +42,6 @@ func main() {
 	}
 	if *min > *max {
 		log.Fatal("-min must be <= -max")
-	}
-	if *avg&(*avg-1) != 0 {
-		log.Fatal("-avg must be a power of two")
 	}
 	if *min < *window {
 		log.Fatal("-min must be >= -window")
@@ -65,7 +61,7 @@ func main() {
 	// Chunk and write output files.
 	copy := new(bytes.Buffer)
 	r := io.TeeReader(f, copy)
-	c := rabin.NewChunker(rabin.NewTable(rabin.Poly64, int(*window)), r, int(*min), int(*avg), int(*max))
+	c := rabin.NewChunker(rabin.NewTable(rabin.Poly64, int(*window)), r, int(*min), int(*max))
 	for i := 0; ; i++ {
 		clen, err := c.Next()
 		if err == io.EOF {

@@ -49,7 +49,7 @@ package rabin
 //
 // This is a convenient polynomial to use for computing 64-bit Rabin
 // hashes.
-const Poly64 = 0xbfe6b8a5bf378d83
+const Poly64 = 10923124345206883
 
 // Table is a set of pre-computed tables for computing Rabin
 // fingerprints for a given polynomial and window size.
